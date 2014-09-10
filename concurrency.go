@@ -15,7 +15,8 @@ import (
 const (
 	LongTimeFormat = "2006-01-02 15:04:05"
 
-	CUSTOMER_ID = "chinataxtrial"
+	//CUSTOMER_ID = "chinataxtrial"
+	CUSTOMER_ID = "sndhrtrial"
 )
 
 func main() {
@@ -27,8 +28,10 @@ func main() {
 		log.Fatal("open database error: ", err)
 	}
 
-	rows, err := db.Query("SELECT rid, ip, time FROM history_2014 WHERE user = ?",
-		CUSTOMER_ID)
+	//sql := fmt.Sprintf("SELECT rid, ip, time FROM history_2014 WHERE user = ? "+
+	//	"AND (time > '%s' AND time < '%s')", "2014-08-18", "2014-09-08")
+	sql := fmt.Sprintf("SELECT rid, ip, time FROM history_2014 WHERE user = ?")
+	rows, err := db.Query(sql, CUSTOMER_ID)
 
 	cc := &Concurrency{}
 
