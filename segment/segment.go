@@ -79,7 +79,7 @@ func query(uri string) string {
 }
 
 func readKeywords() []string {
-	kwFile := "segment/keywords.txt"
+	kwFile := "segment/keywords_hits_30.txt"
 	bb, err := ioutil.ReadFile(kwFile)
 	if err != nil {
 		fmt.Println("Read keywords error.", err)
