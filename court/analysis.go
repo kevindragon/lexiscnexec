@@ -10,14 +10,16 @@ import (
 )
 
 type Analysis struct {
-	tree  *trie.Trie
-	chain map[string][]string
+	tree         *trie.Trie
+	chain        map[string][]string
+	standardTree *trie.Trie
 }
 
 func NewAnalysis() *Analysis {
 	analysis := &Analysis{
-		tree:  trie.Create(),
-		chain: make(map[string][]string),
+		tree:         trie.Create(),
+		chain:        make(map[string][]string),
+		standardTree: trie.Create(),
 	}
 	return analysis
 }
@@ -63,6 +65,7 @@ func (analysis *Analysis) LoadStandard(file string) bool {
 			continue
 		}
 		analysis.AddInverseChain(line)
+		analysis.standardTree.Add(line)
 	}
 
 	return true
@@ -271,6 +274,62 @@ func getAncestor(analysis *Analysis, str, suffix string, parentTerms []string) s
 	}
 
 	return ""
+}
+
+func (analysis *Analysis) GetTop(str string) string {
+	suffixes := []string{"省", "市", "区", "县"}
+	bySuffix := false
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(str, suffix) {
+			bySuffix = true
+			break
+		}
+	}
+
+	top := getTop(analysis, str)
+	if top == "" && !bySuffix {
+		for _, suffix := range suffixes {
+			top = getTop(analysis, str+suffix)
+			if top != "" {
+				return top
+			}
+		}
+	}
+
+	return top
+}
+func getTop(analysis *Analysis, str string) string {
+	if parents, ok := analysis.chain[str]; ok {
+		if len(parents) > 1 {
+			return ""
+		}
+		for _, parent := range parents {
+			if parent == "" {
+				return str
+			}
+			return getTop(analysis, parent)
+		}
+	}
+
+	return ""
+}
+
+func (analysis *Analysis) IsStandard(str string) bool {
+	if analysis.standardTree.Find(str) {
+		return true
+	}
+	return false
+}
+
+func (analysis *Analysis) IsTop(str string) bool {
+	if parents, ok := analysis.chain[str]; ok {
+		for _, parent := range parents {
+			if parent == "" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (analysis *Analysis) Print() {
