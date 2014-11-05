@@ -46,3 +46,29 @@ func TestInverseChain(t *testing.T) {
 		}
 	}
 }
+
+func TestToTerms(t *testing.T) {
+	analysis := court.NewAnalysis()
+
+	analysis.LoadDict("dict.txt")
+
+	testData := map[string][]string{
+		"江苏省南京中级人民法院":      []string{"江苏省", "南京", "中级人民法院"},
+		"南京市江宁县人民法院":       []string{"南京市", "江宁县", "人民法院"},
+		"玄武人民法院":           []string{"玄武", "人民法院"},
+		"中华人民共和国淄博市中级人民法院": []string{"中华人民共和国", "淄博市", "中级人民法院"},
+		"重庆市铜梁县人民法院":       []string{"重庆市", "铜梁县", "人民法院"},
+	}
+	for word, terms := range testData {
+		actualTerms := analysis.ToTerms(word)
+		//fmt.Println(word, terms, actualTerms)
+		if len(actualTerms) != len(terms) {
+			t.Error("terms analysis failed", word, terms, actualTerms)
+		}
+		for index := range actualTerms {
+			if actualTerms[index] != terms[index] {
+				t.Error("terms analysis failed", word, terms, actualTerms)
+			}
+		}
+	}
+}

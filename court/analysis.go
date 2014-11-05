@@ -98,10 +98,10 @@ func (analysis *Analysis) ToTerms(str string) []string {
 
 		// 把当前词加上最后一个分词看是否是一个词
 		if len(terms) > 0 {
-			lastTerm = terms[len(terms)-1]
+			lastTerm = terms[0]
 			newMatch := inverseMatch + lastTerm
 			if analysis.tree.Find(newMatch) {
-				terms[len(terms)-1] = newMatch
+				terms[0] = newMatch
 				inverseMatch = ""
 				continue
 			}
@@ -113,7 +113,21 @@ func (analysis *Analysis) ToTerms(str string) []string {
 		}
 	}
 	if inverseMatch != "" {
-		terms = append([]string{inverseMatch}, terms...)
+		var headerTerms []string
+		charsRemaining := []rune(inverseMatch)
+		// 正向最小匹配
+		var match string = ""
+		for i := 0; i < len(charsRemaining); i++ {
+			match += string(charsRemaining[i])
+			if analysis.tree.Find(match) {
+				headerTerms = append(headerTerms, match)
+				match = ""
+			}
+		}
+		if match != "" {
+			headerTerms = append(headerTerms, match)
+		}
+		terms = append(headerTerms, terms...)
 	}
 
 	return terms
@@ -184,27 +198,32 @@ func (analysis *Analysis) GetAncestor(str string) string {
 
 	// 先分词
 	terms := analysis.ToTerms(shortStr)
-	fmt.Println("terms", terms)
+	//fmt.Println("terms", terms)
 
 	var ancestor string
 	for i := len(terms) - 1; i >= 0; i-- {
 		term := terms[i]
-
-		fmt.Println("find", terms[i], "parent")
+		var parentTerms []string
+		if i > 0 {
+			parentTerms = terms[0:i]
+		}
+		//fmt.Println("find", terms[i], "parent, parentTerms", parentTerms)
 
 		// 第一次如果没有找到对应的父级，是不是最后一个字不是县区市呢
+		var suffixes []string
 		for _, distSuffix := range districtSuffix {
-			if strings.HasSuffix(term, distSuffix) {
-				continue
+			if !strings.HasSuffix(term, distSuffix) {
+				suffixes = append(suffixes, distSuffix)
 			}
-			ancestor = getAncestor(analysis, term+distSuffix, "")
-
+		}
+		for _, suffix := range suffixes {
+			ancestor = getAncestor(analysis, term+suffix, "", parentTerms)
 			if ancestor != "" {
 				return ancestor + last
 			}
 		}
 
-		ancestor = getAncestor(analysis, term, "")
+		ancestor = getAncestor(analysis, term, "", parentTerms)
 
 		if ancestor != "" {
 			return ancestor + last
@@ -221,17 +240,33 @@ func (analysis *Analysis) GetAncestor(str string) string {
 // 查找str的父级，如果有suffix，一起拼接上返回
 // 如果没有找到返回空字符串
 // 从analysis.chain中递归查找
-func getAncestor(analysis *Analysis, str, suffix string) string {
+func getAncestor(analysis *Analysis, str, suffix string, parentTerms []string) string {
 	if parents, ok := analysis.chain[str]; ok {
-		//fmt.Println(str, "parents", parents, "with suffix", suffix)
+		var lastParentTerm string
+		if len(parentTerms) > 0 {
+			lastParentTerm = parentTerms[len(parentTerms)-1]
+			parentTerms = parentTerms[0 : len(parentTerms)-1]
+		}
+
+		//fmt.Println(str, "parents", len(parents), parents, "with suffix", suffix)
+
 		if len(parents) > 1 {
-			return ""
+			if lastParentTerm != "" {
+				for _, parent := range parents {
+					if parent == lastParentTerm {
+						parents = []string{parent}
+						break
+					}
+				}
+			} else {
+				return ""
+			}
 		}
 		for _, parent := range parents {
 			if parent == "" {
 				return str + suffix
 			}
-			return getAncestor(analysis, parent, str+suffix)
+			return getAncestor(analysis, parent, str+suffix, parentTerms)
 		}
 	}
 
