@@ -1,3 +1,4 @@
+// 对比两个IDOL的分词结果是否一致
 package segment
 
 import (
