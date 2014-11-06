@@ -19,8 +19,11 @@ func main() {
 		fmt.Println("read file court/courts_in_db.txt failed")
 	}
 
-	for index, line := range lines {
-		line = strings.Trim(line, " ")
+	var standards []string
+	var unStandards []string
+	for index, l := range lines {
+		line := l
+		line = strings.Replace(strings.Trim(line, " "), " ", "", -1)
 		if line == "" {
 			continue
 		}
@@ -33,11 +36,22 @@ func main() {
 		}
 		sameTop := underSameTop(analysis, standardName, line)
 		if !sameTop {
+			unStandards = append(unStandards, fmt.Sprintf(`"%d","%s",`, index+1, l))
 			standardName = ""
+		} else {
+			standards = append(standards, fmt.Sprintf(`"%d","%s","%s"`, index+1, l, standardName))
 		}
 		//fmt.Println(line, "-->", standardName, sameTop)
 
-		fmt.Printf("%d\t%s\t%s\n", index+1, line, standardName)
+		//fmt.Printf("%d,%s,%s\n", index+1, line, standardName)
+	}
+
+	fmt.Printf("%s,%s,%s\n", "#", "原始名称", "转换后的名称")
+	for _, line := range standards {
+		fmt.Printf("%s\n", line)
+	}
+	for _, line := range unStandards {
+		fmt.Printf("%s\n", line)
 	}
 
 	//test()
