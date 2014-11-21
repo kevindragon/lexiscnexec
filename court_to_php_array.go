@@ -23,6 +23,7 @@ func main() {
 	sheet1 := xlFile.Sheets[0]
 
 	lines := make([]string, 0)
+	lineUniqMap := make(map[string]string)
 
 	inverseNames := make(map[string]string)
 	level := make([]string, 4)
@@ -48,17 +49,27 @@ func main() {
 		for i, content := range current {
 			if content != "" && i == 0 {
 				inverseNames[content] = ""
-				lines = append(lines, content)
+				if _, ok := lineUniqMap[content]; !ok {
+					lines = append(lines, content)
+					lineUniqMap[content] = "1"
+				}
 				break
 			}
 			if content != "" {
 				inverseNames[content] = level[i-1]
-				lines = append(lines, content)
+				if _, ok := lineUniqMap[content]; !ok {
+					lines = append(lines, content)
+					lineUniqMap[content] = "1"
+				}
+				break
 			}
 		}
 	}
 
+	fmt.Print("<?php\n\nreturn array(\n")
 	print(lines, inverseNames)
+	fmt.Print(");")
+
 	/*
 		for {
 			var i int
@@ -76,9 +87,15 @@ func main() {
 }
 
 func print(order []string, data map[string]string) {
+	sortOrder := 1
 	for _, key := range order {
 		if key != "" {
-			fmt.Println(`"`+key+`" =>`, `"`+data[key]+`", `)
+			outputLine := fmt.Sprintf(`    "%s" => array("parent" => "%s", "order" => %d), `,
+				key, data[key], sortOrder)
+			sortOrder += 1
+
+			fmt.Println(outputLine)
+			//fmt.Println(`"`+key+`" =>`, `"`+data[key]+`", `)
 		}
 	}
 }

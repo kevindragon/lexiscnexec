@@ -1,3 +1,5 @@
+// 把存在于数据库的不统一的法院名称统一
+// 输出csv格式的输出
 package main
 
 import (
@@ -9,14 +11,20 @@ import (
 )
 
 func main() {
+	convert()
+	//test()
+}
 
-	analysis := court.NewAnalysis()
-	analysis.LoadDict("court/dict.txt")
-	analysis.LoadStandard("court/standard.txt")
+func convert() {
+	analyzer := court.NewAnalyzer()
+	analyzer.LoadDict("court/dict.txt")
+	analyzer.LoadStandard("court/standard.txt")
+	analyzer.LoadMapping("court/manual_mapping.txt")
 
 	lines, err := readFile("court/courts_in_db.txt")
 	if err != nil {
 		fmt.Println("read file court/courts_in_db.txt failed")
+		os.Exit(1)
 	}
 
 	var standards []string
@@ -28,95 +36,53 @@ func main() {
 			continue
 		}
 
-		var standardName string
-		if analysis.IsStandard(line) {
-			standardName = line
-		} else {
-			standardName = analysis.GetAncestor(line)
-		}
-		sameTop := underSameTop(analysis, standardName, line)
-		if !sameTop {
-			unStandards = append(unStandards, fmt.Sprintf(`"%d","%s",`, index+1, l))
-			standardName = ""
+		standardName := analyzer.GetFromMapping(line)
+		if standardName == "" {
+			if analyzer.IsStandard(line) {
+				standardName = line
+			} else {
+				standardName = analyzer.GetAncestor(line)
+			}
+			sameTop := underSameTop(analyzer, standardName, line)
+			if !sameTop {
+				unStandards = append(unStandards, fmt.Sprintf(`"%d","%s",`, index+1, l))
+				standardName = ""
+			} else {
+				standards = append(standards, fmt.Sprintf(`"%d","%s","%s"`, index+1, l, standardName))
+			}
 		} else {
 			standards = append(standards, fmt.Sprintf(`"%d","%s","%s"`, index+1, l, standardName))
 		}
-		//fmt.Println(line, "-->", standardName, sameTop)
 
-		//fmt.Printf("%d,%s,%s\n", index+1, line, standardName)
 	}
 
 	fmt.Printf("%s,%s,%s\n", "#", "原始名称", "转换后的名称")
 	for _, line := range standards {
 		fmt.Printf("%s\n", line)
 	}
+	fmt.Println(`"","",""`)
 	for _, line := range unStandards {
 		fmt.Printf("%s\n", line)
 	}
-
-	//test()
 }
 
 func test() {
-	analysis := court.NewAnalysis()
+	analyzer := court.NewAnalyzer()
 
-	analysis.LoadDict("court/dict.txt")
-	/*
-		words := []string{
-			"重庆市运输法院",
-			"江苏省南京中级人民法院",
-			"南京市江宁县人民法院",
-			"玄武人民法院",
-			"中华人民共和国淄博市中级人民法院",
-		}
-		for _, word := range words {
-			fmt.Println(word, "terms:", analysis.ToTerms(word))
-		}
-	*/
-	analysis.LoadStandard("court/standard.txt")
-
+	analyzer.LoadDict("court/dict.txt")
 	names := []string{
-		"郑州市郑州矿区人民法院",
-		"淄博市淄川区人民法院",
-		"重庆市第二中级人民法院",
-		"重庆市铜梁县人民法院",
-		"江苏省南京市玄武区人民法院",
-		"玄武人民法院",
-		"苏州市姑苏区人民法院",
-		"南京市江宁县人民法院",
-		"中华人民共和国江苏省高级人民法院",
-		"中华人民共和国淄博市中级人民法院",
-		"中华人民共和国江苏省高级人民法院",
-		"江苏南京市中级人民法院",
-		"江苏省南京中级人民法院",
-		"中华人民共和国南京市人民法院",
-		"中华人民共和国南京市中级人民法院",
-		"南京市玄武区人民法院",
-		"南京市玄武区某某法院",
-		"玄武区人民法院",
-		"南京市白下区人民法院",
-		"南京市秦淮区人民法院",
-		"秦淮区人民法院 ",
-		"中华人民共和国南京市秦淮区人民法院",
-		"南京市下关区人民法院",
-		"南京市鼓楼区人民法院",
-		"南京市鼓楼区法院",
-		"南京市下关区人民法院",
-		"南京浦口区人民法院",
-		"南京市浦口区人民法院",
-		"南京市栖霞区人民法院",
-		"某市栖霞区人民法院",
-		"南京市雨花台区人民法院 ",
-		"雨花台区人民法院",
-		"江苏省南京市江宁区（县）人民法院",
-		"江宁区人民法院",
-		"南京市江宁区人民法院 ",
-		"南京市江宁县人民法院",
-		"江宁区人民法院",
+		"鼎城区人民法院",
 	}
 	for _, name := range names {
-		standardName := analysis.GetAncestor(name)
-		sameTop := underSameTop(analysis, standardName, name)
+		fmt.Println(name, "terms:", analyzer.ToTerms(name))
+	}
+	analyzer.LoadStandard("court/standard.txt")
+
+	fmt.Println("")
+
+	for _, name := range names {
+		standardName := analyzer.GetAncestor(name)
+		sameTop := underSameTop(analyzer, standardName, name)
 		if sameTop {
 			fmt.Println(name, "-->", standardName, sameTop)
 		} else {
@@ -124,25 +90,24 @@ func test() {
 
 		}
 	}
-
 }
 
-func underSameTop(analysis *court.Analysis, src, dist string) bool {
+func underSameTop(analyzer *court.Analyzer, src, dist string) bool {
 	src, dist = strings.Trim(src, " "), strings.Trim(dist, " ")
 	if src == "" || dist == "" {
 		return false
 	}
 
-	srcTerms := analysis.ToTerms(src)
-	distTerms := analysis.ToTerms(dist)
+	srcTerms := analyzer.ToTerms(src)
+	distTerms := analyzer.ToTerms(dist)
 
 	if srcTerms[0] == distTerms[0] {
 		return true
 	}
 
 	for _, distTerm := range distTerms {
-		if !analysis.IsTop(distTerm) {
-			distTop := analysis.GetTop(distTerm)
+		if !analyzer.IsTop(distTerm) {
+			distTop := analyzer.GetTop(distTerm)
 			if distTop != "" {
 				distTerms = append(distTerms, distTop)
 			}
@@ -151,8 +116,8 @@ func underSameTop(analysis *court.Analysis, src, dist string) bool {
 
 	srcTop := srcTerms[0]
 	for _, srcTerm := range srcTerms {
-		if !analysis.IsTop(srcTerm) {
-			tmpTop := analysis.GetTop(srcTerm)
+		if !analyzer.IsTop(srcTerm) {
+			tmpTop := analyzer.GetTop(srcTerm)
 			if tmpTop != "" {
 				srcTop = tmpTop
 				break

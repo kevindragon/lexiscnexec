@@ -9,19 +9,21 @@ import (
 	"strings"
 )
 
-type Analysis struct {
+type Analyzer struct {
 	tree         *trie.Trie
 	chain        map[string][]string
 	standardTree *trie.Trie
+	mapping      map[string]string
 }
 
-func NewAnalysis() *Analysis {
-	analysis := &Analysis{
+func NewAnalyzer() *Analyzer {
+	analyzer := &Analyzer{
 		tree:         trie.Create(),
 		chain:        make(map[string][]string),
 		standardTree: trie.Create(),
+		mapping:      make(map[string]string),
 	}
-	return analysis
+	return analyzer
 }
 
 func readFile(filepath string) ([]string, error) {
@@ -41,20 +43,20 @@ func readFile(filepath string) ([]string, error) {
 	return lines, nil
 }
 
-func (analysis *Analysis) LoadDict(file string) bool {
+func (analyzer *Analyzer) LoadDict(file string) bool {
 	lines, err := readFile(file)
 	if err != nil {
 		return false
 	}
 
 	for _, line := range lines {
-		analysis.tree.Add(line)
+		analyzer.tree.Add(line)
 	}
 
 	return true
 }
 
-func (analysis *Analysis) LoadStandard(file string) bool {
+func (analyzer *Analyzer) LoadStandard(file string) bool {
 	lines, err := readFile(file)
 	if err != nil {
 		return false
@@ -64,14 +66,30 @@ func (analysis *Analysis) LoadStandard(file string) bool {
 		if strings.Trim(line, " ") == "" {
 			continue
 		}
-		analysis.AddInverseChain(line)
-		analysis.standardTree.Add(line)
+		analyzer.AddInverseChain(line)
+		analyzer.standardTree.Add(line)
 	}
 
 	return true
 }
 
-func (analysis *Analysis) ToTerms(str string) []string {
+func (analyzer *Analyzer) LoadMapping(file string) bool {
+	lines, err := readFile(file)
+	if err != nil {
+		return false
+	}
+
+	for _, line := range lines {
+		fields := strings.Split(line, ",")
+		if fields[0] != "" && fields[1] != "" {
+			analyzer.mapping[fields[0]] = fields[1]
+		}
+	}
+
+	return true
+}
+
+func (analyzer *Analyzer) ToTerms(str string) []string {
 	var terms []string
 
 	chars := []rune(str)
@@ -84,7 +102,7 @@ func (analysis *Analysis) ToTerms(str string) []string {
 		var match string = ""
 		for i := 0; i < len(chars); i++ {
 			match += string(chars[i])
-			if analysis.tree.Find(match) {
+			if analyzer.tree.Find(match) {
 				terms = append(terms, match)
 				match = ""
 			}
@@ -103,14 +121,14 @@ func (analysis *Analysis) ToTerms(str string) []string {
 		if len(terms) > 0 {
 			lastTerm = terms[0]
 			newMatch := inverseMatch + lastTerm
-			if analysis.tree.Find(newMatch) {
+			if analyzer.tree.Find(newMatch) {
 				terms[0] = newMatch
 				inverseMatch = ""
 				continue
 			}
 		}
 
-		if analysis.tree.Find(inverseMatch) {
+		if analyzer.tree.Find(inverseMatch) {
 			terms = append([]string{inverseMatch}, terms...)
 			inverseMatch = ""
 		}
@@ -122,7 +140,7 @@ func (analysis *Analysis) ToTerms(str string) []string {
 		var match string = ""
 		for i := 0; i < len(charsRemaining); i++ {
 			match += string(charsRemaining[i])
-			if analysis.tree.Find(match) {
+			if analyzer.tree.Find(match) {
 				headerTerms = append(headerTerms, match)
 				match = ""
 			}
@@ -144,12 +162,12 @@ var suffix map[string]bool = map[string]bool{
 	"分院":     true,
 }
 
-func removeSuffix(analysis *Analysis, str string) string {
+func removeSuffix(analyzer *Analyzer, str string) string {
 	if len(str) == 0 {
 		return str
 	}
 
-	terms := analysis.ToTerms(str)
+	terms := analyzer.ToTerms(str)
 
 	lastTerm := terms[len(terms)-1]
 	if _, ok := suffix[lastTerm]; ok {
@@ -159,8 +177,8 @@ func removeSuffix(analysis *Analysis, str string) string {
 	return strings.Join(terms, "")
 }
 
-func (analysis *Analysis) AddInverseChain(str string) {
-	terms := analysis.ToTerms(removeSuffix(analysis, str))
+func (analyzer *Analyzer) AddInverseChain(str string) {
+	terms := analyzer.ToTerms(removeSuffix(analyzer, str))
 
 	for i := len(terms) - 1; i >= 0; i-- {
 		var parentTerm string
@@ -170,7 +188,7 @@ func (analysis *Analysis) AddInverseChain(str string) {
 			parentTerm = terms[i-1]
 		}
 
-		if parent, ok := analysis.chain[terms[i]]; ok {
+		if parent, ok := analyzer.chain[terms[i]]; ok {
 			exists := false
 			for index := range parent {
 				if parent[index] == parentTerm {
@@ -179,11 +197,11 @@ func (analysis *Analysis) AddInverseChain(str string) {
 				}
 			}
 			if !exists {
-				analysis.chain[terms[i]] = append(analysis.chain[terms[i]],
+				analyzer.chain[terms[i]] = append(analyzer.chain[terms[i]],
 					parentTerm)
 			}
 		} else {
-			analysis.chain[terms[i]] = append(analysis.chain[terms[i]],
+			analyzer.chain[terms[i]] = append(analyzer.chain[terms[i]],
 				parentTerm)
 		}
 	}
@@ -195,12 +213,16 @@ var districtSuffix []string = []string{
 	"市",
 }
 
-func (analysis *Analysis) GetAncestor(str string) string {
-	shortStr := removeSuffix(analysis, str)
+func (analyzer *Analyzer) GetFromMapping(str string) string {
+	return analyzer.mapping[str]
+}
+
+func (analyzer *Analyzer) GetAncestor(str string) string {
+	shortStr := removeSuffix(analyzer, str)
 	last := strings.Replace(str, shortStr, "", -1)
 
 	// 先分词
-	terms := analysis.ToTerms(shortStr)
+	terms := analyzer.ToTerms(shortStr)
 	//fmt.Println("terms", terms)
 
 	var ancestor string
@@ -220,13 +242,13 @@ func (analysis *Analysis) GetAncestor(str string) string {
 			}
 		}
 		for _, suffix := range suffixes {
-			ancestor = getAncestor(analysis, term+suffix, "", parentTerms)
+			ancestor = getAncestor(analyzer, term+suffix, "", parentTerms)
 			if ancestor != "" {
 				return ancestor + last
 			}
 		}
 
-		ancestor = getAncestor(analysis, term, "", parentTerms)
+		ancestor = getAncestor(analyzer, term, "", parentTerms)
 
 		if ancestor != "" {
 			return ancestor + last
@@ -242,9 +264,9 @@ func (analysis *Analysis) GetAncestor(str string) string {
 
 // 查找str的父级，如果有suffix，一起拼接上返回
 // 如果没有找到返回空字符串
-// 从analysis.chain中递归查找
-func getAncestor(analysis *Analysis, str, suffix string, parentTerms []string) string {
-	if parents, ok := analysis.chain[str]; ok {
+// 从analyzer.chain中递归查找
+func getAncestor(analyzer *Analyzer, str, suffix string, parentTerms []string) string {
+	if parents, ok := analyzer.chain[str]; ok {
 		var lastParentTerm string
 		if len(parentTerms) > 0 {
 			lastParentTerm = parentTerms[len(parentTerms)-1]
@@ -269,14 +291,14 @@ func getAncestor(analysis *Analysis, str, suffix string, parentTerms []string) s
 			if parent == "" {
 				return str + suffix
 			}
-			return getAncestor(analysis, parent, str+suffix, parentTerms)
+			return getAncestor(analyzer, parent, str+suffix, parentTerms)
 		}
 	}
 
 	return ""
 }
 
-func (analysis *Analysis) GetTop(str string) string {
+func (analyzer *Analyzer) GetTop(str string) string {
 	suffixes := []string{"省", "市", "区", "县"}
 	bySuffix := false
 	for _, suffix := range suffixes {
@@ -286,10 +308,10 @@ func (analysis *Analysis) GetTop(str string) string {
 		}
 	}
 
-	top := getTop(analysis, str)
+	top := getTop(analyzer, str)
 	if top == "" && !bySuffix {
 		for _, suffix := range suffixes {
-			top = getTop(analysis, str+suffix)
+			top = getTop(analyzer, str+suffix)
 			if top != "" {
 				return top
 			}
@@ -298,8 +320,8 @@ func (analysis *Analysis) GetTop(str string) string {
 
 	return top
 }
-func getTop(analysis *Analysis, str string) string {
-	if parents, ok := analysis.chain[str]; ok {
+func getTop(analyzer *Analyzer, str string) string {
+	if parents, ok := analyzer.chain[str]; ok {
 		if len(parents) > 1 {
 			return ""
 		}
@@ -307,22 +329,22 @@ func getTop(analysis *Analysis, str string) string {
 			if parent == "" {
 				return str
 			}
-			return getTop(analysis, parent)
+			return getTop(analyzer, parent)
 		}
 	}
 
 	return ""
 }
 
-func (analysis *Analysis) IsStandard(str string) bool {
-	if analysis.standardTree.Find(str) {
+func (analyzer *Analyzer) IsStandard(str string) bool {
+	if analyzer.standardTree.Find(str) {
 		return true
 	}
 	return false
 }
 
-func (analysis *Analysis) IsTop(str string) bool {
-	if parents, ok := analysis.chain[str]; ok {
+func (analyzer *Analyzer) IsTop(str string) bool {
+	if parents, ok := analyzer.chain[str]; ok {
 		for _, parent := range parents {
 			if parent == "" {
 				return true
@@ -332,6 +354,6 @@ func (analysis *Analysis) IsTop(str string) bool {
 	return false
 }
 
-func (analysis *Analysis) Print() {
-	fmt.Println(analysis.chain)
+func (analyzer *Analyzer) Print() {
+	fmt.Println(analyzer.chain)
 }
