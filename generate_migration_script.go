@@ -3,36 +3,63 @@ package main
 
 import (
 	"fmt"
+	"github.com/tealeg/xlsx"
 	"io/ioutil"
 	"os"
 	"strings"
 )
 
-func main() {
-	bytes, err := ioutil.ReadFile("court/mapping.txt")
+type Table struct {
+	Old, New string
+}
+
+func readTable() []Table {
+	xlFile, err := xlsx.OpenFile("court/Copy of 法院名称第二次转换 (3).xlsx")
 	if err != nil {
+		panic(err)
+	}
+
+	if len(xlFile.Sheets) < 1 {
+		fmt.Println("There are sheets here.")
 		os.Exit(1)
 	}
-	content := strings.Replace(string(bytes), "\r", "", -1)
-	lines := strings.Split(content, "\n")
 
-	phpArray := ""
-	for _, line := range lines {
-		if line == "" {
+	sheet1 := xlFile.Sheets[0]
+	tables := make([]Table, 0)
+	for _, row := range sheet1.Rows[1:] {
+		if len(row.Cells) < 3 {
 			continue
 		}
-
-		fields := strings.Split(line, ",")
-		if len(fields) < 2 || fields[0] == fields[1] {
-			continue
+		oldName := strings.Replace(row.Cells[1].String(), " ", "", -1)
+		newName := strings.Replace(row.Cells[2].String(), " ", "", -1)
+		if oldName != "" && newName != "" {
+			table := Table{
+				Old: oldName,
+				New: newName,
+			}
+			tables = append(tables, table)
 		}
-
-		phpArray += fmt.Sprintf("    \"%s\" => \"%s\", \n", fields[0], fields[1])
 	}
 
-	phpCode := getPHPCode()
+	return tables
+}
 
-	fmt.Print(strings.Replace(phpCode, "{{ARRAY}}", phpArray, -1))
+func readStandard() map[string]bool {
+	bytes, err := ioutil.ReadFile("court/standard.txt")
+	if err != nil {
+		panic(err)
+	}
+	c := string(bytes)
+	c = strings.Replace(c, "\r", "\n", -1)
+	c = strings.Replace(c, "\n\n", "\n", -1)
+	lines := strings.Split(c, "\n")
+
+	standard := make(map[string]bool)
+	for _, line := range lines {
+		standard[strings.Trim(line, " ")] = true
+	}
+
+	return standard
 }
 
 func print(order []string, data map[string]string) string {
@@ -83,4 +110,24 @@ foreach ($mapping as $old => $new) {
     $stgdb->update($sql);
 }
 `
+}
+
+func main() {
+	standard := readStandard()
+	tables := readTable()
+	phpArray := ""
+	for _, table := range tables {
+		if _, ok := standard[table.New]; !ok {
+			fmt.Println(table.Old, table.New)
+			continue
+		}
+		if table.Old != table.New {
+			phpArray += fmt.Sprintf("    \"%s\" => \"%s\", \n",
+				table.Old, table.New)
+		}
+	}
+
+	phpCode := getPHPCode()
+
+	fmt.Print(strings.Replace(phpCode, "{{ARRAY}}", phpArray, -1))
 }

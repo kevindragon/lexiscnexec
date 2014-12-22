@@ -1,4 +1,5 @@
 // 把存在excel的层级的省、法院转换成php的数组
+// go run court_to_php_array.go > court_definition.php
 package main
 
 import (
@@ -9,7 +10,7 @@ import (
 )
 
 func main() {
-	excelFilename := "court/courts.xlsx"
+	excelFilename := "court/法院名称整理总表20141128.xlsx"
 	xlFile, err := xlsx.OpenFile(excelFilename)
 	if err != nil {
 		panic(err)
@@ -30,11 +31,12 @@ func main() {
 	current := make([]string, 4)
 	for _, row := range sheet1.Rows[1:] {
 		current = []string{"", "", "", ""}
+		// 读取中文名称
 		for i := 0; i < 4; i++ {
 			if len(row.Cells) < 1 {
 				break
 			}
-			cell := strings.Trim(row.Cells[i].String(), " ")
+			cell := strings.Replace(row.Cells[i].String(), " ", "", -1)
 			if cell != "" {
 				level[i] = cell
 				current[i] = cell
@@ -90,8 +92,12 @@ func print(order []string, data map[string]string) {
 	sortOrder := 1
 	for _, key := range order {
 		if key != "" {
-			outputLine := fmt.Sprintf(`    "%s" => array("parent" => "%s", "order" => %d), `,
-				key, data[key], sortOrder)
+			nolink := ""
+			if parent := data[key]; parent == "" && key != "最高人民法院" {
+				nolink = `, "nolink" => true`
+			}
+			outputLine := fmt.Sprintf(`    "%s" => array("parent" => "%s"%s, "order" => %d), `,
+				key, data[key], nolink, sortOrder)
 			sortOrder += 1
 
 			fmt.Println(outputLine)
