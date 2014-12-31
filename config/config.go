@@ -7,4 +7,5 @@ const (
 	DB_PWD          = "lu007bond008#!"
 	DB_NAME         = "newlaw"
 	DB_HISTORY_NAME = "history"
+	AUTN_HOST       = "http://10.123.4.210:9002"
 )
