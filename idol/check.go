@@ -33,6 +33,8 @@ func getTermInfo(text string) []string {
 	reqUrl := fmt.Sprintf("%s/Action=TermGetInfo&Text=%s&OnlyExisting=False&stemming=false",
 		config.AUTN_HOST, url.QueryEscape(text))
 
+	fmt.Println(reqUrl)
+
 	resp, err := http.Get(reqUrl)
 	if err != nil {
 		panic(err)
@@ -52,8 +54,10 @@ func getTermInfo(text string) []string {
 func CustomDict() {
 	words := getCustomKeywords()
 	for _, word := range words {
+		// getTermInfo(word)
 		terms := getTermInfo(word)
-		if len(terms) == 0 || len(terms) > 1 || word != terms[0] {
+		if len(terms) == 0 || len(terms) > 1 ||
+			strings.ToUpper(word) != strings.ToUpper(terms[0]) {
 			fmt.Println(word, "分词不对", terms)
 			continue
 		}
