@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/kevindragon/lexiscnexec/config"
 )
 
 // 一般的检查测试
@@ -27,7 +29,6 @@ func BenchmarkQuery(b *testing.B) {
 	}
 }
 func query() {
-	host := "http://10.123.4.210:9002"
 	autnTpl := `/action=query&Combine=simple&MaxResults=10&start=1` +
 		`&summary=context&Characters=400&totalresults=true` +
 		`&PRINTFIELDS=ID+TITLE+DRETITLE+ISSUE_DATE+ISSUE_DATE_STR` +
@@ -46,9 +47,10 @@ func query() {
 		`+OR+EMPTY{}:ALLTYPE_ID)+AND+(EQUAL{1,2,3,4,5,6,7,8,9,10,11,12,13,14,` +
 		`15,16,17,18,19,20,21,22,23,24,25,26,27}:CHAPTER_ID+OR+EMPTY{}:CHAPTER_ID)` +
 		`&sertype=sim&anylanguage=true`
-	for _, keyword := range benchmarkQueryKeywords {
-		autnCmd := host + strings.Replace(autnTpl, "{KEYWORD}", url.QueryEscape(keyword), -1)
-		fmt.Println(autnCmd)
+	for i, keyword := range benchmarkQueryKeywords {
+		fmt.Println(i)
+		autnCmd := fmt.Sprintf(config.AUTN_HOST+"%s",
+			strings.Replace(autnTpl, "{KEYWORD}", url.QueryEscape(keyword), -1))
 		http.Get(autnCmd)
 	}
 }
