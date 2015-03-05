@@ -2,7 +2,7 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 
 	"github.com/kevindragon/lexiscnexec/idol"
 )
@@ -10,10 +10,12 @@ import (
 func main() {
 	//idol.TestBias()
 
-	performance1 := idol.IndexPerformance("idol/data/indexer/content1.xml")
-	performance2 := idol.IndexPerformance("idol/data/indexer/content2.xml")
-	fmt.Println((performance1 + performance2) / 2)
+	//performance1 := idol.IndexPerformance("idol/data/indexer/content1.xml")
+	//performance2 := idol.IndexPerformance("idol/data/indexer/content2.xml")
+	//fmt.Println((performance1 + performance2) / 2)
 
-	performance := idol.IndexPerformance("idol/data/indexer/singlecontent.xml")
-	fmt.Println(performance)
+	//performance := idol.IndexPerformance("idol/data/indexer/singlecontent.xml")
+	//fmt.Println(performance)
+
+	idol.AlltypeId()
 }

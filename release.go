@@ -44,6 +44,6 @@ func main() {
 
 	fmt.Println("#!/bin/sh\n\ncd /home/www/alpha/\n\ntar xzvf update.tar.gz\n\n")
 	fmt.Println(strings.Join(cmds, "\n"))
-	fmt.Printf(`ll "%s"`, strings.Join(lines, `" "`))
+	fmt.Printf(`ls -al "%s"`, strings.Join(lines, `" "`))
 	fmt.Println("\n\nrm update.tar.gz\n")
 }
