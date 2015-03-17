@@ -113,10 +113,6 @@ func csvWalk(callback func(int, []string, error)) {
 		callback(indexBreak, record, err)
 
 		indexBreak += 1
-
-		if indexBreak > 10 {
-			break
-		}
 	}
 }
 
