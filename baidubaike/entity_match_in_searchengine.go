@@ -47,7 +47,7 @@ func AnalyzeEntity() {
 			removeBookTitleMark(&record[i])
 		}
 
-		fmt.Println(record)
+		// fmt.Println(record)
 
 		sheetRowSlice := make([]string, 0)
 
@@ -71,8 +71,6 @@ func AnalyzeEntity() {
 			sheetRowSlice = append(sheetRowSlice, strings.Join(titles, "\n"))
 			sheetRowSlice = append(sheetRowSlice, strings.Join(ids, "\n"))
 
-			//fmt.Println(row.WriteSlice(&sheetRowSlice, -1))
-
 			for index, cellContent := range sheetRowSlice {
 				cell := row.AddCell()
 				if index == 2 && len(titles) > 0 && originTitle == titles[0] {
@@ -83,7 +81,7 @@ func AnalyzeEntity() {
 				cell.Value = cellContent
 			}
 		} else {
-			fmt.Println(row.WriteSlice(&record, -1))
+			row.WriteSlice(&record, -1)
 		}
 	})
 
@@ -148,7 +146,7 @@ func searchInIDOL(entity string) []rows {
 	queryString := fmt.Sprintf(`action=Query&AnyLanguage=true&Combine=simple&DatabaseMatch=law+lawpic&FieldRestriction=DRETITLE&MaxResults=10&PrintFields=ID+DRETITLE+ISSUE_DATE+POWER_LEVEL+EFFECT_ID+EFFECT_STATUS&Sort=Relevance+power_level:numberincreasing+Date&Start=1&Text=("%s")+OR+("%s":TAGS)`, keyword, keyword)
 	uri := config.AUTN_HOST + "/" + queryString
 
-	fmt.Println(uri)
+	// fmt.Println(uri)
 	bytes, _ := idol.Query(uri)
 	//fmt.Println(string(bytes))
 
