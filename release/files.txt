@@ -1,1 +1,2 @@
-ChinaOnlineAdmin/include/case_fun.php
+theme/cms/js/common.js
+theme/cms/js/module/regional_comparison.js

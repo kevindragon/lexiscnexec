@@ -20,7 +20,7 @@ type Page struct {
 
 type Result struct {
 	Entities []string
-	alias    string
+	Alias    string
 }
 
 func search(keyword string) ([]byte, error) {
@@ -62,9 +62,10 @@ func GetRelatedLaws(keyword string) (Result, error) {
 	mainEntities := getEntities(pureText)
 
 	entities := append(cardEntities, mainEntities...)
+	uniqueSlice(&entities)
 
 	result.Entities = entities
-	result.alias = alias
+	result.Alias = alias
 
 	return result, nil
 }
@@ -92,4 +93,17 @@ func getEntities(s string) []string {
 	entities := re.FindAllString(s, -1)
 
 	return entities
+}
+
+func uniqueSlice(slice *[]string) {
+	found := make(map[string]bool)
+	total := 0
+	for i, val := range *slice {
+		if _, ok := found[val]; !ok {
+			found[val] = true
+			(*slice)[total] = (*slice)[i]
+			total++
+		}
+	}
+	*slice = (*slice)[:total]
 }
