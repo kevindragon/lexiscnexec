@@ -120,9 +120,9 @@ func csvWalk(callback func(int, []string, error)) {
 		callback(indexBreak, record, err)
 
 		indexBreak += 1
-		if indexBreak > 3 {
-			break
-		}
+		// if indexBreak > 3 {
+		// 	break
+		// }
 	}
 }
 
