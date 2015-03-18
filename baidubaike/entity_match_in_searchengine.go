@@ -60,7 +60,7 @@ func AnalyzeEntity() {
 		// 判断有没有书名号的实体
 		if num > 0 && len(record) >= 3 {
 			results := searchInIDOL(record[2])
-			fmt.Println("results", results)
+			//fmt.Println("results", results)
 
 			sheetRowSlice = append(sheetRowSlice, record[:4]...)
 
@@ -152,7 +152,7 @@ func searchInIDOL(entity string) []rows {
 	keyword := url.QueryEscape(entity)
 	queryString := fmt.Sprintf(`action=Query&AnyLanguage=true&Combine=simple&DatabaseMatch=law+lawpic&FieldRestriction=DRETITLE&MaxResults=10&PrintFields=ID+DRETITLE+ISSUE_DATE+POWER_LEVEL+EFFECT_ID+EFFECT_STATUS&Sort=Relevance+power_level:numberincreasing+Date&Start=1&Text=("%s")+OR+("%s":TAGS)&fieldtext=EQUAL{1}:EFFECT_ID`, keyword, keyword)
 	uri := config.AUTN_HOST + "/" + queryString
-	fmt.Println(uri)
+	// fmt.Println(uri)
 
 	bytes, _ := idol.Query(uri)
 
