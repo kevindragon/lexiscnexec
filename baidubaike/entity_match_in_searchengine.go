@@ -46,10 +46,11 @@ func AnalyzeEntity() {
 	normalStyle.Font.Family = 2
 
 	csvWalk(func(num int, record []string, err error) {
+		fmt.Println("line", num+1)
+
 		for i, _ := range record {
 			removeBookTitleMark(&record[i])
 		}
-
 		// fmt.Println(record)
 
 		sheetRowSlice := make([]string, 0)
